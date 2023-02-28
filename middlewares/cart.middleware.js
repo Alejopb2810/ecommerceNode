@@ -3,10 +3,10 @@ const ProductInCart = require('../models/productInCart.model');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
-exports.validExistCart = catchAsync(async (req, res, nest) => {
+exports.validExistCart = catchAsync(async (req, res, next) => {
   const { sessionUser } = req;
 
-  const cart = await Cart.findOne({
+  let cart = await Cart.findOne({
     where: {
       userId: sessionUser.id,
       status: 'active',
@@ -44,3 +44,57 @@ exports.validExistProductInCart = catchAsync(async (req, res, next) => {
   req.productInCart = productInCart;
   next();
 });
+
+exports.validExistProductInCartOrUpdate = catchAsync(async (req, res, next) => {
+  const { sessionUser } = req;
+  const { productId } = req.body;
+
+  const cart = await Cart.findOne({
+    where: {
+      userId: sessionUser.id,
+      status: 'active',
+    },
+  });
+
+  const productInCart = await ProductInCart.findOne({
+    where: {
+      cartId: cart.id,
+      productId,
+    },
+  });
+
+  if (!productInCart) {
+    return next(new AppError('the product does not exist in the cart', 400));
+  }
+
+  req.productInCart = productInCart;
+
+  next();
+});
+
+exports.validExistProductInCartByParamsForUpdate = catchAsync(
+  async (req, res, next) => {
+    const { sessionUser } = req;
+    const { productId } = req.params;
+
+    const cart = await Cart.findOne({
+      where: {
+        userId: sessionUser.id,
+        status: 'active',
+      },
+    });
+
+    const productInCart = await ProductInCart.findOne({
+      where: {
+        cartId: cart.id,
+        productId,
+        status: 'active',
+      },
+    });
+    if (!productInCart) {
+      return next(new AppError('the product does not exist in the cart', 400));
+    }
+    req.productInCart = productInCart;
+    next();
+  }
+);

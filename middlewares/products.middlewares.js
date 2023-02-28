@@ -1,34 +1,30 @@
 const Product = require('../models/product.model');
+const ProductImg = require('../models/productImg.model');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
-exports.validProductById = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+exports.validProductById = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
 
-    const product = await Product.findOne({
-      where: {
-        id,
-        status: true,
+  const product = await Product.findOne({
+    where: {
+      id,
+      status: true,
+    },
+    include: [
+      {
+        model: ProductImg,
       },
-    });
+    ],
+  });
 
-    if (!product) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'The product not found',
-      });
-    }
-
-    req.product = product;
-    next();
-  } catch (error) {
-    return res.status(500).json({
-      status: 'error',
-      message: 'Internal server error',
-    });
+  if (!product) {
+    return next(new AppError('Product not found', 404))();
   }
-};
+
+  req.product = product;
+  next();
+});
 
 exports.validBodyProductById = catchAsync(async (req, res, next) => {
   const { productId } = req.body;
@@ -57,5 +53,36 @@ exports.validIfExistProductsInStock = catchAsync(async (req, res, next) => {
       new AppError('There are not enoght products in the stock', 404)
     );
   }
+  next();
+});
+
+exports.validExistProductInStockForUpdate = catchAsync(
+  async (req, res, next) => {
+    const { product } = req;
+    const { newQty } = req.body;
+
+    if (newQty > product.quantity) {
+      return next(
+        new AppError('There are not enaugh products in the stock', 400)
+      );
+    }
+
+    next();
+  }
+);
+
+exports.validExistProductIdByParams = catchAsync(async (req, res, next) => {
+  const { productId } = req.params;
+  const product = await Product.findOne({
+    where: {
+      id: productId,
+      status: true,
+    },
+  });
+
+  if (!product) {
+    return next(new AppError('product not found', 404));
+  }
+
   next();
 });

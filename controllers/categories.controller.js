@@ -4,24 +4,36 @@ const catchAsync = require('../utils/catchAsync');
 
 exports.findCategories = catchAsync(async (req, res, next) => {
   const categories = await Category.findAll({
-    attributes: { exclude: ['createdAt', 'updatedAt', 'status'] },
+    // attributes: { exclude: ['createdAt', 'updatedAt', 'status'] },
+    attributes: ['id', 'name'],
     where: {
       status: true,
     },
     include: [
       {
         model: Product,
-        attributes: [
-          'id',
-          'title',
-          'description',
-          'quantity',
-          'price',
-          'categoryId',
-          'userId',
-        ],
+        attributes: { exclude: ['createdAt', 'updatedAt', 'status'] },
+        where: {
+          status: true,
+        },
+        // required: false, para que me traiga todas las categorias sin importar que no hallan productos
+        // include: [{ model: User }],
       },
     ],
+    // include: [
+    //   {
+    //     model: Product,
+    //     attributes: [
+    //       'id',
+    //       'title',
+    //       'description',
+    //       'quantity',
+    //       'price',
+    //       'categoryId',
+    //       'userId',
+    //     ],
+    //   },
+    // ],
   });
 
   res.status(200).json({

@@ -2,6 +2,11 @@ const User = require('../models/user.model');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const bcrypt = require('bcryptjs');
+const Order = require('../models/order.model');
+const Cart = require('../models/cart.model');
+const ProductInCart = require('../models/productInCart.model');
+const { ref, getDownloadURL } = require('firebase/storage');
+const { storage } = require('../utils/firebase');
 
 exports.findUsers = catchAsync(async (req, res, next) => {
   // 1. BUSCAR TODOS LOS USUARIOS QUE ESTAN CON STATUS TRUE
@@ -11,6 +16,16 @@ exports.findUsers = catchAsync(async (req, res, next) => {
     },
   });
 
+  const usersPromises = users.map(async user => {
+    const imgRef = ref(storage, user.profileImageUrl);
+    const url = await getDownloadURL(imgRef);
+
+    user.profileImageUrl = url;
+
+    return user;
+  });
+
+  const userResolved = await Promise.all(usersPromises);
   // NOTA: NO ES NECESARIO ENVIAR MENSAJE DE ERROR SI NO HAY USUARIOS, DEBIDO A QUE EL DEVUELVE UN ARRAY VACIO
   // LES PONGO UN EJEMPLO, SUPONGAMOS QUE USTEDES BUSCAN ALGUN PRODUCTO EN UNA TIENDA, Y ESE PRODUCTO NO SE ENCUENTRA,
   // LA TIENDA NO LE ENVIA A USTED NINGUN MENSAJE DE ERROR, SIMPLEMENTE NO LE MUESTRA NADA, ES POR ESO QUE EN ESTE CASO
@@ -20,18 +35,24 @@ exports.findUsers = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     message: 'Users was found successfully',
-    users,
+    users: userResolved,
   });
 });
 
 exports.findUser = catchAsync(async (req, res, next) => {
   const { user } = req;
 
+  const imgRef = ref(storage, user.profileImageUrl);
+  const url = await getDownloadURL(imgRef);
+
+  user.profileImageUrl = url;
+
   // 4. ENVIAR UNA RESPUESTA AL USUARIO
   res.status(200).json({
     status: 'success',
     message: 'User was found successfully',
     user,
+    url,
   });
 });
 
@@ -79,5 +100,67 @@ exports.updatePassword = catchAsync(async (req, res) => {
   res.status(200).json({
     status: 'success',
     message: 'the user password was updatd successfully',
+  });
+});
+
+exports.getOrders = catchAsync(async (req, res, next) => {
+  const { sessionUser } = req;
+
+  const orders = await Order.findAll({
+    where: {
+      userId: sessionUser.id,
+      status: true,
+    },
+    include: [
+      {
+        model: Cart,
+        where: {
+          status: 'purchased',
+        },
+        include: [
+          {
+            model: ProductInCart,
+            where: {
+              status: 'purchased',
+            },
+          },
+        ],
+      },
+    ],
+  });
+  res.status(200).json({
+    orders,
+  });
+});
+
+exports.getOrdersById = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { sessionUser } = req;
+
+  const order = await Order.findOne({
+    where: {
+      userId: sessionUser.id,
+      id,
+      status: true,
+    },
+    include: [
+      {
+        model: Cart,
+        where: {
+          status: 'purchased',
+        },
+        include: [
+          {
+            model: ProductInCart,
+            where: {
+              status: 'purchased',
+            },
+          },
+        ],
+      },
+    ],
+  });
+  res.status(200).json({
+    order,
   });
 });

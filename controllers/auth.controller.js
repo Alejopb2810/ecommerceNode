@@ -3,12 +3,26 @@ const catchAsync = require('../utils/catchAsync');
 const bcrypt = require('bcryptjs');
 const generateJWT = require('../utils/jwt');
 const AppError = require('../utils/appError');
+const { ref, uploadBytes } = require('firebase/storage');
+const { storage } = require('../utils/firebase');
 
 exports.createUser = catchAsync(async (req, res, next) => {
   const { username, email, password, role = 'user' } = req.body;
+  console.log(req.file);
+  const imgRef = ref(storage, `users/${Date.now()}-${req.file.originalname}`);
+  const imgUploaded = await uploadBytes(imgRef, req.file.buffer);
 
-  //1. crear una instancia de la clase user
-  const user = new User({ username, email, password, role });
+  console.log(imgUploaded);
+  // 1. crear una instancia de la clase user
+  const user = new User({
+    username,
+    email,
+    password,
+    role,
+    profileImageUrl: imgUploaded.metadata.fullPath,
+  });
+
+  console.log(user);
   //2. encriptar la contraseña
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(password, salt);
@@ -26,6 +40,7 @@ exports.createUser = catchAsync(async (req, res, next) => {
       username: user.username,
       email: user.email,
       role: user.role,
+      profileImageUrl: user.profileImageUrl,
     },
   });
 });

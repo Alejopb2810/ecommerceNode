@@ -33,7 +33,7 @@ exports.validIfExistUserEmail = catchAsync(async (req, res, next) => {
     //TODO: lo que se deberia hacer es hacerle un update a true al estado de la cuenta
     return next(
       new AppError(
-        'The user has an account, but it is deactivated please talk to the administrator to activate it',
+        'The user has an account, but it is desactivated please talk to the administrator to activate it',
         400
       )
     );

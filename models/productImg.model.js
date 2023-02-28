@@ -8,7 +8,7 @@ const ProductImg = db.define('productsImg', {
     type: DataTypes.INTEGER,
   },
 
-  imageUrl: {
+  imgUrl: {
     type: DataTypes.STRING,
     allowNull: false,
   },
