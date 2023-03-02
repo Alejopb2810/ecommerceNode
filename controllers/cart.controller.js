@@ -1,4 +1,3 @@
-const { where } = require('sequelize');
 const Cart = require('../models/cart.model');
 const Order = require('../models/order.model');
 const Product = require('../models/product.model');
